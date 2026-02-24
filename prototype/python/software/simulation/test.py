@@ -1,0 +1,1 @@
+D:\Anaconda3\Scripts\pip.exe install opencv-python
