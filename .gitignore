@@ -1,0 +1,29 @@
+# STM32 固件库
+/firmware/CubeIDE/
+*.zip
+*.rar
+
+# IDE 设置文件
+.idea/
+*.iml
+.vscode/
+.settings/
+
+# Python 缓存
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# 编译生成文件
+*.o
+*.elf
+*.hex
+*.bin
+Debug/
+Release/
+
+# 可执行文件
+*.exe
+*.out
+*.app*.exe
