@@ -82,6 +82,22 @@ matplotlib
 欢迎通过 Issue 或 Pull Request 提出改进建议。
 
 ## 修改记录
+日期2026.2.28
+主要修改点总结
+1.新增质心模块 (centroid.h, centroid.c)：
+实现了平方加权质心算法，包含背景/噪声估计和阈值处理。
+提供配置结构体和默认初始化。包括错误码
+
+2.集成到 pipeline：
+在 star_tracker.c 中增加 CentroidConfig 成员，并在 star_tracker_create 中初始化。
+修改 star_tracker_process_frame，直接调用 centroid_compute 进行质心提取，移除了原有的 centroid_extract 占位函数。
+调整了 ROI 提取和坐标转换逻辑。
+3.接口设计：
+centroid_compute 只处理 ROI 内的亚像素定位，不关心全局坐标，保持单一职责。
+全局坐标转换由调用者完成。
+可调参数：
+1.阈值系数 threshold_sigma 和窗口大小 window_size 可通过配置修改，适应不同光学设计和噪声水平。
+
 日期：2026.2.26
 1 修改 pipeline 的调用逻辑
 在 star_tracker_process_frame 中，完成星图识别得到 star_ids 后，需要：
@@ -98,4 +114,5 @@ star_tracker.h 中的错误码应细化，并能映射子模块返回的错误�
 
 4 示例代码分离
 目前代码在pipeline和davenport模块中有各自的 main.c，本次修改分别放入对应模块的 examples/ 目录，并确保它们能正确编译运行，后续将与其它模块合并成一个main文件
+
 

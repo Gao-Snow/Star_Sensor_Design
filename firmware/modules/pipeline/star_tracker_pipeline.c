@@ -26,6 +26,7 @@ StarTrackerStatus star_identify(
 // 流水线实例结构（隐藏内部细节）
 struct StarTrackerInstance {
     StarTrackerConfig config;
+    CentroidConfig centroid_cfg;
     QuestConfig quest_cfg;
     // 可添加其他状态
 };
@@ -40,7 +41,12 @@ StarTrackerInstance* star_tracker_create(const StarTrackerConfig* config) {
     if (!inst) return NULL;
 
     memcpy(&inst->config, config, sizeof(StarTrackerConfig));
-
+	
+	//初始化质心提取配置 
+	centroid_config_default(&inst->centroid_cfg);
+    // 可根据需要从 config 中读取参数覆盖默认值
+    // 例如：inst->centroid_cfg.window_size = config->centroid_window_size;
+	
     // 初始化 QUEST 配置（可根据需要从 config 读取）
     inst->quest_cfg.max_iterations = 100;
     inst->quest_cfg.convergence_thresh = 1e-6f;
@@ -79,20 +85,27 @@ StarTrackerStatus star_tracker_process_frame(
     QuestVector3 ref_vec[star_count];
 
     // 1. 质心提取
-    for (int i = 0; i < star_count; ++i) {
-        float cx, cy;
-        StarTrackerStatus status = centroid_extract(
-            image,
-            inst->config.image_width, inst->config.image_height,
-            star_pixels[i][0], star_pixels[i][1],
-            &cx, &cy
-        );
-        if (status != STAR_TRACKER_SUCCESS) {
-            return status;  // 直接传递错误码
-        }
-        centroids[i][0] = cx;
-        centroids[i][1] = cy;
+	float centroids[star_count][2];
+	for (int i = 0; i < star_count; ++i) {
+    // 提取 ROI（同前）
+    	int win = inst->centroid_cfg.window_size;
+    	int half = win / 2;
+    	int x0 = star_pixels[i][0] - half;
+    	int y0 = star_pixels[i][1] - half;
+    // ... 边界检查 ...
+    uint16_t roi[81];
+    for (int r = 0; r < win; ++r)
+        for (int c = 0; c < win; ++c)
+            roi[r*win + c] = image[(y0+r)*img_w + (x0+c)];
+
+    float cx_rel, cy_rel;
+    CentroidStatus cs = centroid_compute(&inst->centroid_cfg, roi, win, win, &cx_rel, &cy_rel);
+    if (cs != CENTROID_SUCCESS) {
+        return STAR_TRACKER_ERROR_CENTROID_FAILED;
     }
+    centroids[i][0] = x0 + cx_rel;
+    centroids[i][1] = y0 + cy_rel;
+	}
 
     // 2. 星图识别
     StarTrackerStatus status = star_identify(centroids, star_count, star_ids);

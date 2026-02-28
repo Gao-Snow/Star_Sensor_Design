@@ -11,8 +11,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "quest.h"
+#include "Davenport_q.h"
 #include "pinhole_camera.h"
+#include "centroid.h"
 
 #ifdef __cplusplus
 extern "C" {
