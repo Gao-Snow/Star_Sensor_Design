@@ -21,12 +21,35 @@
 │       ├── pipeline/         # 星敏感器处理流水线
 │       ├── simulation/       # 星图仿真
 │       └── data/raw/         # 仿真数据（如需生成请自行运行脚本）
+├─firmware					  #固件，烧写进stm32单片机的c语言代码
+│  └─modules
+│      ├─Davenport_q		  #核心识别算法，davenport_q算法
+│      │      Davenport_q.cpp #c语言算法
+│      │      Davenport_q.h   #头文件    
+│      └─pipeline			  #程序流水线
+│         ├──star_tracker_pipeline.cpp #流水线c语言代码
+│         └──Star_Tracker_pipeline.h   #流水线头文件
 ├── simulator/                # 独立仿真工具
 │   ├── Simu.py               # 主仿真脚本
 │   └── src/simulation/       # 仿真模块
 └── 论文/                      # 相关参考文献（PDF）
 ```
 
+本星敏感器固件功能按照如下逻辑层次展开：
+```bash
+.
+application/           (主程序，包含 main 函数，调用 pipeline)
+firmware/
+├── modules/           (独立功能模块)
+│   ├── centroid/      (质心提取，待实现)
+│   ├── identifier/    (星图识别，待实现)
+│   ├── catalog/       (星表查询，新增)
+│   └── quest/         (姿态解算，已优化2026.2.26)
+├── pipeline/          (流水线调度层，已完成2026.2.26)
+│   ├── star_tracker.h/c  (调用各模块完成一帧处理)
+│   └── examples/      (演示 pipeline 使用的示例 main)
+└── platform/          (硬件平台相关)
+```
 
 ## 主要功能
 
@@ -52,9 +75,27 @@ opencv-python
 matplotlib
 
 注意事项
-本仓库不包含 STM32 固件库（体积过大），如需编译固件请自行从 ST 官网下载并放置于 firmware/CubeIDE/STM32Cube_FW_H7_V1.12.1/ 路径下。
+本仓库不包含 STM32 固件库，如需编译固件请自行从 ST 官网下载并放置于 firmware/CubeIDE/STM32Cube_FW_H7_V1.12.1/ 路径下。
 
 仿真生成的大数据文件（如 .npy）默认被 .gitignore 忽略，如有需要请自行生成或使用 Git LFS 管理。
 
-
 欢迎通过 Issue 或 Pull Request 提出改进建议。
+
+## 修改记录
+日期：2026.2.26
+1 修改 pipeline 的调用逻辑
+在 star_tracker_process_frame 中，完成星图识别得到 star_ids 后，需要：
+调用质心转换函数（例如 pixel_to_vector，需要相机焦距等参数）将 centroids 转换为 QuestVector3 body_vectors[]。
+调用星表查询函数（例如 catalog_lookup）将 star_ids 转换为 QuestVector3 ref_vectors[]。
+构造 QuestConfig 和 QuestResult，调用 quest_solve。
+从 QuestResult 中提取四元数，填入输出参数。
+
+2 统一数据类型
+star_tracker.h 中应包含 davenport.h，并使用其定义的类型，避免重复定义。
+
+3 错误处理整合
+star_tracker.h 中的错误码应细化，并能映射子模块返回的错误码（如 quest_solve 返回的 QuestStatus 可转换为相应的 StarTrackerStatus）。
+
+4 示例代码分离
+目前代码在pipeline和davenport模块中有各自的 main.c，本次修改分别放入对应模块的 examples/ 目录，并确保它们能正确编译运行，后续将与其它模块合并成一个main文件
+
