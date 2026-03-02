@@ -82,6 +82,10 @@ matplotlib
 欢迎通过 Issue 或 Pull Request 提出改进建议。
 
 ## 修改记录
+日期：2026.3.1
+完成通信模块，在实现过程中发现参数和配置过多，因此额外添加config模块和parameter模块剥离通信模块相关的代码（如波特率，帧格式，掉电保存等等），因此本次上传communication，config，parameter三个模块
+将commu，config，para集成到pipeline中，并更新目录结构
+
 日期2026.2.28
 主要修改点总结
 

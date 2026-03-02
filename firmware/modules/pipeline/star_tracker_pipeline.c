@@ -28,6 +28,10 @@ struct StarTrackerInstance {
     StarTrackerConfig config;
     CentroidConfig centroid_cfg;
     QuestConfig quest_cfg;
+    StarDetector* detector;
+    StarIdentifier* identifier;
+    SystemParams params;
+    CommandCallback cmd_cb;
     // 可添加其他状态
 };
 
@@ -35,6 +39,16 @@ StarTrackerInstance* star_tracker_create(const StarTrackerConfig* config) {
     if (!config || config->max_detected_stars <= 0 ||
         config->image_width <= 0 || config->image_height <= 0) {
         return NULL;
+    // 初始化参数模块
+    ParamStatus pstat = param_init(&inst->params);
+    if (pstat != PARAM_OK) {
+        // 使用默认参数（已由param_init设置）
+    
+    // 注册指令回调（将comm的回调指向本模块的处理函数）
+    comm_register_callback(star_tracker_command_handler);
+    inst->cmd_cb = star_tracker_command_handler;  // 保存
+
+    return inst;
     }
 
     StarTrackerInstance* inst = (StarTrackerInstance*)malloc(sizeof(StarTrackerInstance));
@@ -56,6 +70,63 @@ StarTrackerInstance* star_tracker_create(const StarTrackerConfig* config) {
 
     return inst;
 }
+
+//指令处理函数
+// 静态函数，处理接收到的指令
+static void star_tracker_command_handler(uint8_t cmd, uint8_t* data, uint16_t len) {
+    StarTrackerInstance* inst = get_global_instance(); // 假设有全局实例指针
+
+    switch (cmd) {
+        case FRAME_TYPE_CMD_RESET:
+            // 软件复位（可通过NVIC）
+            NVIC_SystemReset();
+            break;
+
+        case FRAME_TYPE_CMD_MODE:
+            if (len >= 1) {
+                uint8_t mode = data[0];
+                // 切换模式（需实现mode_mgr）
+                // mode_mgr_set_mode(mode);
+                comm_send_ack(0);
+            } else {
+                comm_send_ack(1);
+            }
+            break;
+
+        case FRAME_TYPE_CMD_SET_PARAM:
+            if (len >= 3) { // 参数ID(1) + 值(2或4)
+                uint8_t param_id = data[0];
+                uint32_t value;
+                if (len == 3) {
+                    value = data[1] | (data[2] << 8);
+                } else if (len == 5) {
+                    value = data[1] | (data[2]<<8) | (data[3]<<16) | (data[4]<<24);
+                } else {
+                    comm_send_ack(2); // 长度错误
+                    break;
+                }
+                // 更新参数
+                ParamStatus ps = param_update(&inst->params, param_id, value);
+                if (ps == PARAM_OK) {
+                    // 保存到Flash
+                    param_save(&inst->params);
+                    comm_send_ack(0);
+                } else {
+                    comm_send_ack(3); // 参数无效
+                }
+            }
+            break;
+
+        case FRAME_TYPE_CMD_UPGRADE:
+            // 固件升级处理（略）
+            break;
+
+        default:
+            comm_send_ack(0xFF); // 未知命令
+            break;
+    }
+}
+ 
 
 void star_tracker_destroy(StarTrackerInstance* inst) {
     if (inst) free(inst);
@@ -158,4 +229,38 @@ StarTrackerStatus star_tracker_process_frame(
     quat_out[3] = qres.quat.z;
 
     return STAR_TRACKER_SUCCESS;
+}
+
+//在主循环中，处理完一帧图像后，调用 comm_send_attitude 发送姿态
+void star_tracker_loop(StarTrackerInstance* inst) {
+    while (1) {
+        // 等待图像采集完成（略）
+        // 处理一帧
+        float quat[4];
+        StarTrackerStatus status = star_tracker_process_frame(inst, image, width, height, quat);
+        if (status == STAR_TRACKER_SUCCESS) {
+            // 获取时间戳
+            uint32_t timestamp = HAL_GetTick();
+            uint8_t state = 0; // 状态字
+            comm_send_attitude(quat, timestamp, state);
+        }
+
+        // 发送遥测（可降低频率，如每10帧一次）
+        static uint32_t last_telemetry = 0;
+        if (HAL_GetTick() - last_telemetry > 1000) { // 1Hz
+            int16_t temp = read_temperature(); // 需实现
+            uint16_t volt = read_voltage();
+            uint8_t star_cnt = inst->last_star_count; // 需记录
+            uint8_t mode = 1; // 当前模式
+            uint8_t error = 0; // 错误码
+            comm_send_telemetry(temp, volt, star_cnt, mode, error);
+            last_telemetry = HAL_GetTick();
+        }
+
+        // 处理接收到的指令
+        comm_process();
+
+        // 喂狗
+        HAL_IWDG_Refresh(&hiwdg);
+    }
 }

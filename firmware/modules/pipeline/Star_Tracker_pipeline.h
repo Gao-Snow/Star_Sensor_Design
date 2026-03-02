@@ -14,6 +14,8 @@
 #include "Davenport_q.h"
 #include "pinhole_camera.h"
 #include "centroid.h"
+#include "comm.h"
+#include "param.h"
 
 #ifdef __cplusplus
 extern "C" {
