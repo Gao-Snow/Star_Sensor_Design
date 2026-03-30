@@ -9,6 +9,7 @@
 - **文档**：包含需求、设计、测试等全流程文档
 
 ## 目录结构
+```text
 1StarTracker/
 ├── .gitignore # Git 忽略规则
 ├── README.md # 项目说明
@@ -35,6 +36,7 @@
 ├── firmware/ # 早期 C 代码（已过时，保留作为参考）
 ├── hardware/ # 硬件设计文件（已废弃，可删除）
 └── 论文/ # 参考论文（涉及版权，已删除）
+```text
 
 > **注意**：`TychoRowData/` 文件夹体积较大且涉及版权，**已通过 .gitignore 排除**，不会上传至 GitHub。如需使用，请自行从 [国家地球系统科学数据中心](https://www.geodata.cn/data/datadetails.html?dataguid=247691264164504&docId=23698) 获取。
 
@@ -67,6 +69,7 @@
   - 输出成功率与姿态误差统计
 
   示例输出：
+  ```text
 正在读取星表: D:\1StarTracker\CatalogPython\tycho2_bright_stars.csv
 成功读取 116 颗恒星！
 串口 COM5 打开成功
@@ -91,7 +94,7 @@
 ============================================
 
 进程已结束，退出代码为 0
-
+```text
 
 ## 环境依赖
 
