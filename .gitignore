@@ -27,3 +27,90 @@ Release/
 *.exe
 *.out
 *.app*.exe
+
+cat > .gitignore << 'EOF'
+# IDE 配置
+.idea/
+.vscode/
+.settings/
+*.suo
+*.user
+*.launch
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# C/C++ 编译产物
+*.o
+*.obj
+*.exe
+*.elf
+*.hex
+*.bin
+*.map
+*.d
+Debug/
+Release/
+
+# STM32 CubeIDE
+STM32/Debug/
+STM32/.settings/
+STM32/.project
+STM32/.cproject
+
+# 临时文件
+~$*
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 敏感信息
+*.key
+*.pem
+config/secrets.py
+
+# 大文件（如果使用 Git LFS 则保留）
+# *.dat
+EOF
+
+# 忽略大文件/敏感文件
+TychoRowData/
+论文/
+*.dat
+*.npy
+
+# Python 虚拟环境
+.venv/
+venv/
+__pycache__/
+
+# IDE 配置
+.idea/
+.vscode/
+.settings/
+*.suo
+*.user
+
+# 编译产物
+STM32/Debug/
+STM32/.settings/
+STM32/.project
+STM32/.cproject
+*.o
+*.elf
+*.hex
+*.bin
+
+# 临时文件
+~$*
+*.log
+.DS_Store
